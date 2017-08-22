@@ -11,6 +11,7 @@
 'use strict';
 
 const autoprefixer = require('autoprefixer');
+const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -37,6 +38,23 @@ const shouldUseSourceMap = process.env.GENERATE_SOURCEMAP !== 'false';
 const publicUrl = publicPath.slice(0, -1);
 // Get environment variables to inject into our app.
 const env = getClientEnvironment(publicUrl);
+
+const root = path.resolve('../..');
+
+var es6 = {};
+var notES6 = {
+  three: true,
+  claraCAD: true,
+};
+var include = [paths.appSrc];
+fs.readdirSync(path.join(root, 'node_modules')).forEach(function(dir) {
+  if (!notES6[dir]) {
+    if (fs.lstatSync(path.join(root, 'node_modules', dir)).isSymbolicLink()) {
+      es6[dir] = true;
+      include.push(fs.realpathSync(path.join(root, 'node_modules', dir)));
+    }
+  }
+});
 
 // Assert this just to be safe.
 // Development builds of React are slow and not intended for production.
@@ -88,7 +106,11 @@ module.exports = {
     // We placed these paths second because we want `node_modules` to "win"
     // if there are any conflicts. This matches Node resolution mechanism.
     // https://github.com/facebookincubator/create-react-app/issues/253
-    modules: ['node_modules', paths.appNodeModules].concat(
+    modules: [
+      path.join(root, 'node_modules'),
+      'node_modules',
+      paths.appNodeModules,
+    ].concat(
       // It is guaranteed to exist because we tweak it in `env.js`
       process.env.NODE_PATH.split(path.delimiter).filter(Boolean)
     ),
@@ -119,7 +141,7 @@ module.exports = {
       // To fix this, we prevent you from importing files out of src/ -- if you'd like to,
       // please link the files into your node_modules/ and let module-resolution kick in.
       // Make sure your source files are compiled, as they will not be processed in any way.
-      new ModuleScopePlugin(paths.appSrc, [paths.appPackageJson]),
+      //new ModuleScopePlugin(paths.appSrc, [paths.appPackageJson]),
     ],
   },
   module: {
@@ -152,7 +174,7 @@ module.exports = {
             loader: require.resolve('eslint-loader'),
           },
         ],
-        include: paths.appSrc,
+        include,
       },
       {
         // "oneOf" will traverse all following loaders until one will
@@ -172,7 +194,7 @@ module.exports = {
           // Process JS with Babel.
           {
             test: /\.(js|jsx)$/,
-            include: paths.appSrc,
+            include,
             loader: require.resolve('babel-loader'),
             options: {
               // @remove-on-eject-begin
