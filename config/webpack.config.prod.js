@@ -47,14 +47,23 @@ var notES6 = {
   claraCAD: true,
 };
 var include = [paths.appSrc];
-fs.readdirSync(path.join(root, 'node_modules')).forEach(function(dir) {
-  if (!notES6[dir]) {
-    if (fs.lstatSync(path.join(root, 'node_modules', dir)).isSymbolicLink()) {
-      es6[dir] = true;
-      include.push(fs.realpathSync(path.join(root, 'node_modules', dir)));
+(function processDirectory(root, checkSymbolic, sub) {
+  var readPath = sub ? path.join(root, sub) : root;
+  fs.readdirSync(readPath).forEach(function(dir) {
+    if (dir === '@exocortex') {
+      return processDirectory(path.join(readPath, dir), false);
     }
-  }
-});
+    if (!notES6[dir]) {
+      if (
+        !checkSymbolic ||
+        fs.lstatSync(path.join(readPath, dir)).isSymbolicLink()
+      ) {
+        es6[dir] = true;
+        include.push(fs.realpathSync(path.join(readPath, dir)));
+      }
+    }
+  });
+})(root, true, 'node_modules');
 
 // Assert this just to be safe.
 // Development builds of React are slow and not intended for production.
